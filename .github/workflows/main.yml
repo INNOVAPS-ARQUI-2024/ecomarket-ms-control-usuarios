@@ -1,0 +1,57 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-to-production:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle
+
+      - name: Grant execute permission for Gradlew
+        run: chmod +x ./gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew clean build
+
+      - name: Build Docker Image
+        run: docker build -t ecomarket-servicio-control-usuarios:prod .
+
+      - name: Save Docker Image to Tar File
+        run: docker save ecomarket-servicio-control-usuarios:prod -o ecomarket-servicio-control-usuarios-prod.tar
+
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Copy Docker Image to Production Server
+        run: |
+          sshpass -p "${{ secrets.PROD_SERVER_PASSWORD }}" scp -P ${{ secrets.PROD_SERVER_PORT }} -o StrictHostKeyChecking=no mi-aplicacion-prod.tar ${{ secrets.PROD_SERVER_USER }}@${{ secrets.PROD_SERVER_HOST }}:/tmp/mi-aplicacion-prod.tar
+
+      - name: Load Docker Image and Run Container on Production Server
+        run: |
+          sshpass -p "${{ secrets.PROD_SERVER_PASSWORD }}" ssh -p ${{ secrets.PROD_SERVER_PORT }} -o StrictHostKeyChecking=no ${{ secrets.PROD_SERVER_USER }}@${{ secrets.PROD_SERVER_HOST }} "
+          docker load -i /tmp/ecomarket-servicio-control-usuarios-prod.tar &&
+          docker stop ecomarket-servicio-control-usuarios-prod || true &&
+          docker rm ecomarket-servicio-control-usuarios-prod || true &&
+          docker run -d --name ecomarket-servicio-control-usuarios-prod -p 8080:8080 ecomarket-servicio-control-usuarios:prod"
+          
