@@ -45,7 +45,7 @@ jobs:
 
       - name: Copy Docker Image to Production Server
         run: |
-          sshpass -p "${{ secrets.PROD_SERVER_PASSWORD }}" scp -P ${{ secrets.PROD_SERVER_PORT }} -o StrictHostKeyChecking=no mi-aplicacion-prod.tar ${{ secrets.PROD_SERVER_USER }}@${{ secrets.PROD_SERVER_HOST }}:/tmp/mi-aplicacion-prod.tar
+          sshpass -p "${{ secrets.PROD_SERVER_PASSWORD }}" scp -P ${{ secrets.PROD_SERVER_PORT }} -o StrictHostKeyChecking=no ecomarket-servicio-control-usuarios-prod.tar ${{ secrets.PROD_SERVER_USER }}@${{ secrets.PROD_SERVER_HOST }}:/tmp/ecomarket-servicio-control-usuarios-prod.tar
 
       - name: Load Docker Image and Run Container on Production Server
         run: |
