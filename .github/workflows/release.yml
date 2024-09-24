@@ -40,25 +40,17 @@ jobs:
       - name: Save Docker Image to Tar File
         run: docker save ecomarket-servicio-control-usuarios:qa -o ecomarket-servicio-control-usuarios-qa.tar
 
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
       - name: Copy Docker Image to QA Server
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.QA_SERVER_HOST }}
-          username: ${{ secrets.QA_SERVER_USER }}
-          key: ${{ secrets.QA_SERVER_SSH_KEY }}
-          port: ${{ secrets.QA_SERVER_PORT }}
-          source: "ecomarket-servicio-control-usuarios-qa.tar"
-          target: "/tmp/ecomarket-servicio-control-usuarios-qa.tar"
+        run: |
+          sshpass -p "${{ secrets.QA_SERVER_PASSWORD }}" scp -P ${{ secrets.QA_SERVER_PORT }} -o StrictHostKeyChecking=no ecomarket-servicio-control-usuarios-qa.tar ${{ secrets.QA_SERVER_USER }}@${{ secrets.QA_SERVER_HOST }}:/tmp/ecomarket-servicio-control-usuarios-qa.tar
 
       - name: Load Docker Image and Run Container on QA Server
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.QA_SERVER_HOST }}
-          username: ${{ secrets.QA_SERVER_USER }}
-          key: ${{ secrets.QA_SERVER_SSH_KEY }}
-          port: ${{ secrets.QA_SERVER_PORT }}
-          script: |
-            docker load -i /tmp/ecomarket-servicio-control-usuarios-qa.tar
-            docker stop ecomarket-servicio-control-usuarios-qa || true
-            docker rm ecomarket-servicio-control-usuarios-qa || true
-            docker run -d --name ecomarket-servicio-control-usuarios-qa -p 8080:8080 ecomarket-servicio-control-usuarios:qa
+        run: |
+          sshpass -p "${{ secrets.QA_SERVER_PASSWORD }}" ssh -p ${{ secrets.QA_SERVER_PORT }} -o StrictHostKeyChecking=no ${{ secrets.QA_SERVER_USER }}@${{ secrets.QA_SERVER_HOST }} "
+          docker load -i /tmp/ecomarket-servicio-control-usuarios-qa.tar &&
+          docker stop ecomarket-servicio-control-usuarios-qa || true &&
+          docker rm ecomarket-servicio-control-usuarios-qa || true &&
+          docker run -d --name ecomarket-servicio-control-usuarios-qa -p 8080:8080 ecomarket-servicio-control-usuarios:qa"
