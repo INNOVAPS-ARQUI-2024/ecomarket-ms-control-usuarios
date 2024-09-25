@@ -1,5 +1,5 @@
 # Usar una imagen base de OpenJDK
-FROM openjdk:17-jre-slim
+FROM openjdk:17-oracle
 
 # Crear un directorio para la aplicación
 WORKDIR /app
