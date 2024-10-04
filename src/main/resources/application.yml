@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: ecomarket-servicio-control-usuarios
+  data:
+    mongodb:
+      uri: mongodb+srv://jdmolinae5:f59G7hBRJkZ9ltrg@cluster1.cxnru.mongodb.net/ecomarket?retryWrites=true&w=majority
+
+server:
+  port: 8081
+
+eureka:
+  client:
+    registerWithEureka: true
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
