@@ -6,7 +6,7 @@ spring:
       uri: mongodb+srv://jdmolinae5:f59G7hBRJkZ9ltrg@cluster1.cxnru.mongodb.net/ecomarket?retryWrites=true&w=majority
 
 server:
-  port: 8081
+  port: 8082
 
 eureka:
   client:
