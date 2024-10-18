@@ -37,16 +37,18 @@ jobs:
       - name: Build Docker Image
         run: docker build -t ecomarket-servicio-control-usuarios:qa .
 
-      - name: Save Docker Image to Tar File
-        run: docker save ecomarket-servicio-control-usuarios:qa -o ecomarket-servicio-control-usuarios-qa.tar
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Tag Docker Image
+        run: docker tag ecomarket-servicio-control-usuarios:qa ${{ secrets.DOCKERHUB_USERNAME }}/ecomarket-servicio-control-usuarios:qa
+
+      - name: Push Docker Image to Docker Hub
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/ecomarket-servicio-control-usuarios:qa
 
       - name: Install sshpass
         run: sudo apt-get update && sudo apt-get install -y sshpass
 
-      - name: Copy Docker Image to QA Server
-        run: |
-          sshpass -p "${{ secrets.QA_SERVER_PASSWORD }}" scp -P ${{ secrets.QA_SERVER_PORT }} -o StrictHostKeyChecking=no ecomarket-servicio-control-usuarios-qa.tar ${{ secrets.QA_SERVER_USER }}@${{ secrets.QA_SERVER_HOST }}:/tmp/ecomarket-servicio-control-usuarios-qa.tar
-
       - name: Run Deployment Script on QA Server
         run: |
-          sshpass -p "${{ secrets.QA_SERVER_PASSWORD }}" ssh -p ${{ secrets.QA_SERVER_PORT }} -o StrictHostKeyChecking=no ${{ secrets.QA_SERVER_USER }}@${{ secrets.QA_SERVER_HOST }} "/home/estudiante/scripts/deploy_docker_image-ecomarket-servicio-control-usuarios-qa.sh"
+          sshpass -p "${{ secrets.QA_SERVER_PASSWORD }}" ssh -p ${{ secrets.QA_SERVER_PORT }} -o StrictHostKeyChecking=no ${{ secrets.QA_SERVER_USER }}@${{ secrets.QA_SERVER_HOST }} "/home/estudiante/ecomarket-app-backend-springboot/scripts/QA/deploy_docker_image-ecomarket-servicio-control-usuarios-qa.sh"
