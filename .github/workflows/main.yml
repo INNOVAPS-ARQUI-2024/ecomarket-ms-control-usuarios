@@ -41,10 +41,10 @@ jobs:
         run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Tag Docker Image
-        run: docker tag ecomarket-servicio-control-usuarios:qa ${{ secrets.DOCKERHUB_USERNAME }}/ecomarket-servicio-control-usuarios:qa
+        run: docker tag ecomarket-servicio-control-usuarios:prod ${{ secrets.DOCKERHUB_USERNAME }}/ecomarket-servicio-control-usuarios:prod
 
       - name: Push Docker Image to Docker Hub
-        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/ecomarket-servicio-control-usuarios:qa
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/ecomarket-servicio-control-usuarios:prod
 
       - name: Install sshpass
         run: sudo apt-get update && sudo apt-get install -y sshpass
