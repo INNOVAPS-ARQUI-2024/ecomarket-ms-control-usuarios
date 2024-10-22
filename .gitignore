@@ -4,6 +4,7 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
+src/main/resources/ecomarket-arqui-2024-firebase-adminsdk-1vey1-c717b062bb.json
 
 ### STS ###
 .apt_generated
