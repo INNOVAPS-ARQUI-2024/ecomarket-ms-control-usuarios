@@ -1,13 +1,23 @@
 package com.example.ecomarket_servicio_control_usuarios.controller;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.bouncycastle.asn1.x500.style.BCStyle.T;
+import static org.bouncycastle.asn1.x509.X509Name.T;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.example.ecomarket_servicio_control_usuarios.model.Usuario;
 import com.example.ecomarket_servicio_control_usuarios.service.UserService;
-
-import java.util.Map;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
+import com.google.firebase.auth.FirebaseToken;
 
 @RestController
 @RequestMapping("/api/usuarios")
@@ -35,16 +45,60 @@ public class UserController {
         }
     }
 
-    // Endpoint para iniciar sesión
+// Endpoint para iniciar sesión
     @PostMapping("/ingreso")
-    public ResponseEntity<String> inicioSesion(@RequestBody Map<String, String> credenciales) {
+    public ResponseEntity<Map<String, Object>> inicioSesion(@RequestBody Map<String, String> credenciales) {
+        Map<String, Object> response = new HashMap<>(); // Usamos Object en lugar de String para permitir diferentes tipos de valores
         try {
-            String token = userService.iniciarSesion(credenciales);
-            return ResponseEntity.ok(token); // 200 OK
+            // Obtener los datos del usuario autenticado desde el servicio
+            Map<String, Object> userData = userService.iniciarSesion(credenciales);
+
+            // Crear un token personalizado basado en el UID del usuario
+            String sessionToken = FirebaseAuth.getInstance().createCustomToken(userData.get("uid").toString());
+
+            // Devolver los datos del usuario junto con el token
+            response.put("message", "Inicio de sesión exitoso");
+            response.put("token", sessionToken);
+            response.put("user", userData); // Agregamos los datos del usuario
+
+            return ResponseEntity.status(200).body(response);  // 200 OK
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(401).body(e.getMessage()); // 401 Unauthorized
+            // Error de autenticación o credenciales incorrectas
+            response.put("error", "Credenciales inválidas. Verifica tu email y contraseña.");
+            return ResponseEntity.status(401).body(response);  // 401 Unauthorized
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error al iniciar sesión"); // 500 Internal Server Error
+            // Error genérico del servidor
+            response.put("error", "Error inesperado en el servidor. Inténtalo de nuevo más tarde.");
+            return ResponseEntity.status(500).body(response);  // 500 Internal Server Error
+        }
+    }
+
+    // Endpoint para cerrar sesión
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@RequestBody Map<String, String> body) {
+        try {
+            String uid = body.get("uid"); // Obtener UID desde el cuerpo de la solicitud
+            userService.logout(uid);  // Revocar el token en el servicio
+            return ResponseEntity.status(200).body("Sesión cerrada exitosamente"); // 200 OK
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error al cerrar sesión"); // 500 Internal Server Error
+        }
+    }
+
+// UserController: validar token recibido del frontend
+    @PostMapping("/validar-token")
+    public ResponseEntity<String> validarToken(@RequestBody Map<String, String> body) {
+        try {
+            String token = body.get("token");
+            FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(token);
+            String uid = decodedToken.getUid();
+
+            // Aquí puedes realizar más lógica, como verificar el rol del usuario en la base de datos
+            return ResponseEntity.status(200).body("Token validado, UID: " + uid);
+        } catch (FirebaseAuthException e) {
+            return ResponseEntity.status(401).body("Token no válido");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error en la validación del token");
         }
     }
 
