@@ -37,16 +37,18 @@ jobs:
       - name: Build Docker Image
         run: docker build -t ecomarket-servicio-control-usuarios:prod .
 
-      - name: Save Docker Image to Tar File
-        run: docker save ecomarket-servicio-control-usuarios:prod -o ecomarket-servicio-control-usuarios-prod.tar
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Tag Docker Image
+        run: docker tag ecomarket-servicio-control-usuarios:prod ${{ secrets.DOCKERHUB_USERNAME }}/ecomarket-servicio-control-usuarios:prod
+
+      - name: Push Docker Image to Docker Hub
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/ecomarket-servicio-control-usuarios:prod
 
       - name: Install sshpass
         run: sudo apt-get update && sudo apt-get install -y sshpass
 
-      - name: Copy Docker Image to Production Server
-        run: |
-          sshpass -p "${{ secrets.PROD_SERVER_PASSWORD }}" scp -P ${{ secrets.PROD_SERVER_PORT }} -o StrictHostKeyChecking=no ecomarket-servicio-control-usuarios-prod.tar ${{ secrets.PROD_SERVER_USER }}@${{ secrets.PROD_SERVER_HOST }}:/tmp/ecomarket-servicio-control-usuarios-prod.tar
-
       - name: Run Deployment Script on Production Server
         run: |
-          sshpass -p "${{ secrets.PROD_SERVER_PASSWORD }}" ssh -p ${{ secrets.PROD_SERVER_PORT }} -o StrictHostKeyChecking=no ${{ secrets.PROD_SERVER_USER }}@${{ secrets.PROD_SERVER_HOST }} "/home/estudiante/scripts/deploy_docker_image-ecomarket-servicio-control-usuarios-prod.sh"
+          sshpass -p "${{ secrets.PROD_SERVER_PASSWORD }}" ssh -p ${{ secrets.PROD_SERVER_PORT }} -o StrictHostKeyChecking=no ${{ secrets.PROD_SERVER_USER }}@${{ secrets.PROD_SERVER_HOST }} "/home/estudiante/ecomarket-app-backend-springboot/scripts/PROD/deploy_docker_image-ecomarket-servicio-control-usuarios-prod.sh"
