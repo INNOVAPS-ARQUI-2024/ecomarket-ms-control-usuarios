@@ -1,6 +1,7 @@
 package com.example.ecomarket_servicio_control_usuarios.controller;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,9 +12,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.ecomarket_servicio_control_usuarios.model.Usuario;
+import com.example.ecomarket_servicio_control_usuarios.service.AyrshareService;
 import com.example.ecomarket_servicio_control_usuarios.service.UserService;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
@@ -25,6 +29,9 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired 
+    private AyrshareService ayrshareService;
 
     // Endpoint para obtener información pública
     @GetMapping("/public/info")
@@ -99,7 +106,7 @@ public class UserController {
     }
 
 // UserController: validar token recibido del frontend
-    @PostMapping("/validar-token")
+    @PostMapping("/validar-token")  
     public ResponseEntity<String> validarToken(@RequestBody Map<String, String> body) {
         try {
             String token = body.get("token");
@@ -137,4 +144,17 @@ public class UserController {
             return ResponseEntity.status(500).body("Error al aprobar usuario"); // 500 Internal Server Error
         }
     }*/
+
+    // Endpoint para programar una publicación 
+    @PostMapping("/schedule-post") public ResponseEntity<String> schedulePost(@RequestParam String postContent, 
+                                    @RequestParam List<String> platforms, 
+                                    @RequestParam String scheduleDate, 
+                                    @RequestParam(required = false) MultipartFile file) { 
+        try{ 
+            String response = ayrshareService.schedulePost(postContent, platforms, scheduleDate, file);
+            return ResponseEntity.status(200).body(response);
+        } catch (Exception e) { 
+            return ResponseEntity.status(500).body("Error al programar la publicación: " + e.getMessage()); // 500 Internal Server Error 
+        } 
+    }
 }
