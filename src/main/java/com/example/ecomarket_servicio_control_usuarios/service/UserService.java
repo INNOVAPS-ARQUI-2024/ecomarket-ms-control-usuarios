@@ -132,6 +132,15 @@ public class UserService {
         // Revocar todos los tokens de sesión activos del usuario
         FirebaseAuth.getInstance().revokeRefreshTokens(uid);
     }
+
+    public void eliminarUsuario(String uid) throws FirebaseAuthException {
+        // Eliminar el usuario de Firebase Authentication
+        firebaseAuth.deleteUser(uid);
+
+        // Eliminar el usuario de Firebase Realtime Database
+        firebaseDb.child("users").child(uid).removeValueAsync();
+    }
+
     // Método para aprobar usuarios
     /*public void aprobarUsuario(String idUsuario) throws ExecutionException, InterruptedException {
         CompletableFuture<Void> future = new CompletableFuture<>();
@@ -155,5 +164,4 @@ public class UserService {
 
         future.get();
     }*/
-
 }
