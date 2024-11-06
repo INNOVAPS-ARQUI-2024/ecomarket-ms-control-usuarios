@@ -3,11 +3,11 @@ package com.example.ecomarket_servicio_control_usuarios.controller;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.bouncycastle.asn1.x500.style.BCStyle.T;
-import static org.bouncycastle.asn1.x509.X509Name.T;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -42,6 +42,19 @@ public class UserController {
             return ResponseEntity.status(400).body(e.getMessage()); // 400 Bad Request
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error al registrar usuario"); // 500 Internal Server Error
+        }
+    }
+
+    @PostMapping("/actualizar-email-auth")
+    public ResponseEntity<String> actualizarEmailEnAuth(@RequestBody Map<String, String> body) {
+        String uid = body.get("uid");
+        String nuevoEmail = body.get("nuevoEmail");
+
+        try {
+            userService.actualizarCorreoEnAuth(uid, nuevoEmail);
+            return ResponseEntity.status(200).body("Correo actualizado correctamente en Firebase Authentication");
+        } catch (FirebaseAuthException e) {
+            return ResponseEntity.status(500).body("Error al actualizar el correo en Auth: " + e.getMessage());
         }
     }
 
@@ -99,6 +112,16 @@ public class UserController {
             return ResponseEntity.status(401).body("Token no válido");
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error en la validación del token");
+        }
+    }
+
+    @DeleteMapping("/eliminar/{uid}")
+    public ResponseEntity<String> eliminarUsuario(@PathVariable String uid) {
+        try {
+            userService.eliminarUsuario(uid);
+            return ResponseEntity.status(200).body("Usuario eliminado exitosamente");
+        } catch (FirebaseAuthException e) {
+            return ResponseEntity.status(500).body("Error al eliminar usuario: " + e.getMessage());
         }
     }
 
