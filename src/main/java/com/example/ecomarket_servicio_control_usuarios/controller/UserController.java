@@ -45,6 +45,19 @@ public class UserController {
         }
     }
 
+    @PostMapping("/actualizar-email-auth")
+    public ResponseEntity<String> actualizarEmailEnAuth(@RequestBody Map<String, String> body) {
+        String uid = body.get("uid");
+        String nuevoEmail = body.get("nuevoEmail");
+
+        try {
+            userService.actualizarCorreoEnAuth(uid, nuevoEmail);
+            return ResponseEntity.status(200).body("Correo actualizado correctamente en Firebase Authentication");
+        } catch (FirebaseAuthException e) {
+            return ResponseEntity.status(500).body("Error al actualizar el correo en Auth: " + e.getMessage());
+        }
+    }
+
 // Endpoint para iniciar sesión
     @PostMapping("/ingreso")
     public ResponseEntity<Map<String, Object>> inicioSesion(@RequestBody Map<String, String> credenciales) {

@@ -132,6 +132,7 @@ public class UserService {
         // Revocar todos los tokens de sesión activos del usuario
         FirebaseAuth.getInstance().revokeRefreshTokens(uid);
     }
+<<<<<<< HEAD
 
     public void eliminarUsuario(String uid) throws FirebaseAuthException {
         // Eliminar el usuario de Firebase Authentication
@@ -144,24 +145,25 @@ public class UserService {
     // Método para aprobar usuarios
     /*public void aprobarUsuario(String idUsuario) throws ExecutionException, InterruptedException {
         CompletableFuture<Void> future = new CompletableFuture<>();
+=======
+>>>>>>> dc42f2854900b6bde247c5c6bb2fde7b10ce0867
 
-        firebaseDb.child("users").child(idUsuario).addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if (dataSnapshot.exists()) {
-                    firebaseDb.child("users").child(idUsuario).child("aprobado").setValueAsync(true);
-                    future.complete(null);
-                } else {
-                    future.completeExceptionally(new IllegalArgumentException("Usuario no encontrado."));
-                }
-            }
+    public void eliminarUsuario(String uid) throws FirebaseAuthException {
+        // Eliminar el usuario de Firebase Authentication
+        firebaseAuth.deleteUser(uid);
 
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                future.completeExceptionally(new IllegalStateException("Error en la base de datos: " + databaseError.getMessage()));
-            }
-        });
+        // Eliminar el usuario de Firebase Realtime Database
+        firebaseDb.child("users").child(uid).removeValueAsync();
+    }
 
+<<<<<<< HEAD
         future.get();
     }*/
+=======
+    public void actualizarCorreoEnAuth(String uid, String nuevoEmail) throws FirebaseAuthException {
+        UserRecord.UpdateRequest request = new UserRecord.UpdateRequest(uid).setEmail(nuevoEmail);
+        firebaseAuth.updateUser(request);
+    }
+
+>>>>>>> dc42f2854900b6bde247c5c6bb2fde7b10ce0867
 }
