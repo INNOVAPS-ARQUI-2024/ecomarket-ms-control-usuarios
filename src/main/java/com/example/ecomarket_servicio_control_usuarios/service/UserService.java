@@ -1,6 +1,7 @@
 package com.example.ecomarket_servicio_control_usuarios.service;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -36,44 +37,44 @@ public class UserService {
         CompletableFuture<String> future = new CompletableFuture<>();
 
         firebaseDb.child("users").orderByChild("email").equalTo(nuevoUsuario.getEmail())
-            .addListenerForSingleValueEvent(new ValueEventListener() {
-                @Override
-                public void onDataChange(DataSnapshot dataSnapshot) {
-                    if (dataSnapshot.exists()) {
-                        future.completeExceptionally(new IllegalArgumentException("El correo ya está en uso."));
-                    } else {
-                        try {
-                            CreateRequest request = new CreateRequest()
-                                .setEmail(nuevoUsuario.getEmail())
-                                .setPassword("123456")
-                                .setDisplayName(nuevoUsuario.getName())
-                                .setEmailVerified(false)
-                                .setDisabled(false);
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        if (dataSnapshot.exists()) {
+                            future.completeExceptionally(new IllegalArgumentException("El correo ya está en uso."));
+                        } else {
+                            try {
+                                CreateRequest request = new CreateRequest()
+                                        .setEmail(nuevoUsuario.getEmail())
+                                        .setPassword("123456")
+                                        .setDisplayName(nuevoUsuario.getName())
+                                        .setEmailVerified(false)
+                                        .setDisabled(false);
 
-                            UserRecord userRecord = firebaseAuth.createUser(request);
-                            nuevoUsuario.setUserId(userRecord.getUid());
-                            nuevoUsuario.setCreatedAt(new Date());
-                            nuevoUsuario.setUpdatedAt(new Date());
+                                UserRecord userRecord = firebaseAuth.createUser(request);
+                                nuevoUsuario.setUserId(userRecord.getUid());
+                                nuevoUsuario.setCreatedAt(new Date());
+                                nuevoUsuario.setUpdatedAt(new Date());
 
-                            firebaseDb.child("users").child(userRecord.getUid()).setValueAsync(nuevoUsuario);
-                            future.complete("Usuario registrado con éxito en Authentication y Realtime Database.");
-                        } catch (FirebaseAuthException e) {
-                            future.completeExceptionally(new IllegalStateException("Error en Firebase Authentication: " + e.getMessage()));
+                                firebaseDb.child("users").child(userRecord.getUid()).setValueAsync(nuevoUsuario);
+                                future.complete("Usuario registrado con éxito en Authentication y Realtime Database.");
+                            } catch (FirebaseAuthException e) {
+                                future.completeExceptionally(new IllegalStateException("Error en Firebase Authentication: " + e.getMessage()));
+                            }
                         }
                     }
-                }
 
-                @Override
-                public void onCancelled(DatabaseError databaseError) {
-                    future.completeExceptionally(new IllegalStateException("Error en la base de datos: " + databaseError.getMessage()));
-                }
-            });
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                        future.completeExceptionally(new IllegalStateException("Error en la base de datos: " + databaseError.getMessage()));
+                    }
+                });
 
         return future.get();
     }
 
-    // Método para iniciar sesión (validar credenciales)
-    public String iniciarSesion(Map<String, String> credenciales) throws FirebaseAuthException {
+// Método para iniciar sesión (validar credenciales y obtener información del usuario)
+    public Map<String, Object> iniciarSesion(Map<String, String> credenciales) throws FirebaseAuthException, InterruptedException, ExecutionException {
         String email = credenciales.get("email");
         String password = credenciales.get("password");
 
@@ -81,26 +82,40 @@ public class UserService {
             throw new IllegalArgumentException("Correo y contraseña son obligatorios.");
         }
 
+        // Obtener el usuario desde Firebase Authentication por email
         UserRecord userRecord = firebaseAuth.getUserByEmail(email);
         if (userRecord == null) {
             throw new IllegalArgumentException("Usuario no encontrado.");
         }
 
-        return "Inicio de sesión exitoso. UID: " + userRecord.getUid();
-    }
+        // Recuperar más información del usuario desde Firebase Realtime Database
+        DatabaseReference userRef = firebaseDb.child("users").child(userRecord.getUid());
+        CompletableFuture<Map<String, Object>> future = new CompletableFuture<>();
 
-    // Método para aprobar usuarios
-    /*public void aprobarUsuario(String idUsuario) throws ExecutionException, InterruptedException {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-
-        firebaseDb.child("users").child(idUsuario).addListenerForSingleValueEvent(new ValueEventListener() {
+        userRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if (dataSnapshot.exists()) {
-                    firebaseDb.child("users").child(idUsuario).child("aprobado").setValueAsync(true);
-                    future.complete(null);
+                    Map<String, Object> userData = new HashMap<>();
+                    userData.put("uid", userRecord.getUid());
+                    userData.put("email", userRecord.getEmail());
+                    userData.put("profilePicture", dataSnapshot.child("profilePicture").getValue(String.class));
+                    userData.put("role", dataSnapshot.child("role").getValue(String.class));
+
+                    try {
+                        // Generar un token de sesión (esto es un ejemplo usando Firebase)
+                        String sessionToken = FirebaseAuth.getInstance().createCustomToken(userRecord.getUid());
+
+                        // Agregar el token a la respuesta
+                        userData.put("token", sessionToken);
+
+                        future.complete(userData);
+                    } catch (FirebaseAuthException e) {
+                        future.completeExceptionally(new IllegalStateException("Error al generar el token: " + e.getMessage()));
+                    }
+
                 } else {
-                    future.completeExceptionally(new IllegalArgumentException("Usuario no encontrado."));
+                    future.completeExceptionally(new IllegalArgumentException("No se encontró el perfil del usuario en la base de datos."));
                 }
             }
 
@@ -110,7 +125,25 @@ public class UserService {
             }
         });
 
-        future.get();
-    }*/
+        return future.get();  // Espera la operación asíncrona y devuelve el resultado
+    }
+
+    public void logout(String uid) throws FirebaseAuthException {
+        // Revocar todos los tokens de sesión activos del usuario
+        FirebaseAuth.getInstance().revokeRefreshTokens(uid);
+    }
+
+    public void eliminarUsuario(String uid) throws FirebaseAuthException {
+        // Eliminar el usuario de Firebase Authentication
+        firebaseAuth.deleteUser(uid);
+
+        // Eliminar el usuario de Firebase Realtime Database
+        firebaseDb.child("users").child(uid).removeValueAsync();
+    }
+
+    public void actualizarCorreoEnAuth(String uid, String nuevoEmail) throws FirebaseAuthException {
+        UserRecord.UpdateRequest request = new UserRecord.UpdateRequest(uid).setEmail(nuevoEmail);
+        firebaseAuth.updateUser(request);
+    }
 
 }
